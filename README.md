@@ -5,6 +5,8 @@
 This code work on TensorFlow 2.0 and few libraries for image processing such as Opencv
 
 ```
+sudo apt-get install python3-tk
+
 pip3 install tensorflow-gpu==2.0.0b1
 pip3 install matplotlib
 pip3 install opencv-python
