@@ -1,20 +1,15 @@
-#!/usr/bin/python3
-# coding=utf-8
-
 import os
 import os.path as osp
+import sys
 import numpy as np
 import cv2
-import json
-import pickle
-import matplotlib.pyplot as plt
-import sys
 
-root_path = os.path.abspath('.')
-sys.path.insert(0, osp.join(root_path, 'cocoapi', 'PythonAPI'))
+abspath = os.path.abspath('.')
+root_path = os.path.split(abspath)[0]
+sys.path.insert(0, osp.join(root_path, 'cocoapi' ,'PythonAPI'))
+
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-
 
 class Dataset(object):
     
@@ -173,4 +168,59 @@ class Dataset(object):
         # Blend the keypoints.
         return cv2.addWeighted(img, 1.0 - alpha, kp_mask, alpha, 0)
 
+
+
+
+
 dbcfg = Dataset()
+val_data = dbcfg.load_val_data_with_annot()
+
+import tensorflow as tf
+import tensorflow_addons as tfa
+from matplotlib import pyplot as plt
+
+image_paths = [i['imgpath'] for i in val_data]
+bbox = [i['bbox'] for i in val_data]
+joints = [i['joints'] for i in val_data]
+scores = [i['score'] for i in val_data]
+
+ds = tf.data.Dataset.from_tensor_slices((image_paths, bbox, joints, scores))
+
+data = []
+for sample in ds.take(1):
+    for i in sample:
+        data.append(i.numpy())
+img = plt.imread(dbcfg.img_path + os.sep + 'val2017/000000425226.jpg')
+
+import image_process
+from matplotlib import pyplot as plt
+sys.path.insert(0, osp.join(root_path, 'config'))
+import config
+config = config.config()
+config.kps_symmetry = dbcfg.kps_symmetry
+# cropped_img, target_coord, valid = image_process.image_process(img, data[1], data[2], config)
+
+# plt.imshow(img)
+# plt.show()
+# plt.imshow(cropped_img)
+# plt.show()
+
+imaga_path = dbcfg.img_path
+
+print(dbcfg.kps_symmetry)
+
+def data_process(file_path, bbox, joints, scores):
+    img = tf.io.read_file(imaga_path + os.sep + file_path)
+    img = tf.image.decode_jpeg(img, channels=3)
+    img = tf.image.convert_image_dtype(img, tf.float32)
+    x = tf.py_function(image_process.image_process, [img, bbox, joints], [tf.float32,  tf.int32])
+    return x
+
+processed_ds = ds.shuffle(100).map(data_process)
+
+for sample in processed_ds.take(1):
+    print(sample)
+
+
+
+

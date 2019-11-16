@@ -1,14 +1,17 @@
 import numpy as np
 import cv2
 import random
+import os
 
 class config():
     def __init__(self):
+        self.image_path = '/home/kerry/prj/pose_repo/lab4/datasets/COCO/images'
         self.input_shape = (256, 192)
         self.num_kps = 17
         self.rotation_factor = 40
         self.scale_factor = 0.3
         self.kps_symmetry = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16)]
+
 def get_dir(src_point, rot_rad):
     sn, cs = np.sin(rot_rad), np.cos(rot_rad)
 
@@ -62,7 +65,12 @@ def get_affine_transform(center,
 
     return trans
 
-def image_process(img, bbox, joints, config = config(), is_train=True):
+def cropped_image_and_pose_coord(file_path, bbox, joints, config = config(), is_train=True):
+    file_path = file_path.numpy().decode("utf-8")
+    img = cv2.imread(os.path.join(config.image_path, file_path), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+    if img is None:
+        print('cannot read ' + os.path.join(config.image_path, str(file_path)))
+        assert 0
     x, y, w, h = bbox
     aspect_ratio = config.input_shape[1]/config.input_shape[0]
     center = np.array([x + w * 0.5, y + h * 0.5])
@@ -90,8 +98,7 @@ def image_process(img, bbox, joints, config = config(), is_train=True):
                 joints[w,:], joints[q,:] = joints_q, joints_w
 
         trans = get_affine_transform(center, scale, rotation, (config.input_shape[1], config.input_shape[0]))
-        print(type(img), type(trans))
-        cropped_img = cv2.warpAffine(np.float32(img), np.float32(trans), (config.input_shape[1], config.input_shape[0]), flags=cv2.INTER_LINEAR)
+        cropped_img = cv2.warpAffine(img, trans, (config.input_shape[1], config.input_shape[0]), flags=cv2.INTER_LINEAR)
         #cropped_img = cropped_img[:,:, ::-1]
         #cropped_img = config.normalize_input(cropped_img)
         
