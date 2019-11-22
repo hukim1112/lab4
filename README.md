@@ -7,7 +7,8 @@ This code work on TensorFlow 2.0 and few libraries for image processing such as 
 ```
 sudo apt-get install python3-tk
 
-pip3 install tensorflow-gpu==2.0.0b1
+pip3 install tensorflow_addons
+pip3 install tensorflow-gpu==2.0.0
 pip3 install matplotlib
 pip3 install opencv-python
 pip3 install scikit-image
@@ -31,8 +32,8 @@ python setup.py build_ext install
 
 ## a) Simple pose estimation 
 
-1. data pipeline with tf.data
-2. build our network
+1. ~~data pipeline with tf.data~~
+2. ~~build our network~~
 3. connect person detector and our model
 
 

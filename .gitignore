@@ -1,4 +1,5 @@
 /cocoapi
 /datasets
+/model
 .ipynb_checkpoints/
 *.pyc
