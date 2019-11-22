@@ -2,15 +2,8 @@ import numpy as np
 import cv2
 import random
 import os
-
-class config():
-    def __init__(self):
-        self.image_path = '/home/kerry/prj/pose_repo/lab4/datasets/COCO/images'
-        self.input_shape = (256, 192)
-        self.num_kps = 17
-        self.rotation_factor = 40
-        self.scale_factor = 0.3
-        self.kps_symmetry = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16)]
+import tensorflow as tf
+from config.coco_config import config
 
 def get_dir(src_point, rot_rad):
     sn, cs = np.sin(rot_rad), np.cos(rot_rad)
@@ -65,7 +58,19 @@ def get_affine_transform(center,
 
     return trans
 
-def cropped_image_and_pose_coord(file_path, bbox, joints, config = config(), is_train=True):
+def render_gaussian_heatmap(coord, output_shape, config=config()):
+    x = tf.constant([i for i in range(output_shape[1])], tf.float32)
+    y = tf.constant([i for i in range(output_shape[0])], tf.float32)
+    xx,yy = tf.meshgrid(x,y)
+    xx = tf.reshape(xx, (*output_shape,1))
+    yy = tf.reshape(yy, (*output_shape,1))
+
+    x = tf.floor(tf.reshape(coord[:,0],[1,1,config.num_kps]) / config.input_shape[1] * output_shape[1] + 0.5)
+    y = tf.floor(tf.reshape(coord[:,1],[1,1,config.num_kps]) / config.input_shape[0] * output_shape[0] + 0.5)
+    heatmap = tf.exp(-(((xx-x)/config.sigma)**2)/2 -(((yy-y)/config.sigma)**2)/2)
+    return heatmap * 255.
+
+def cropped_image_and_pose_coord(file_path, bbox, joints, config=config(), is_train=True):
     file_path = file_path.numpy().decode("utf-8")
     img = cv2.imread(os.path.join(config.image_path, file_path), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
     if img is None:
@@ -99,14 +104,12 @@ def cropped_image_and_pose_coord(file_path, bbox, joints, config = config(), is_
 
         trans = get_affine_transform(center, scale, rotation, (config.input_shape[1], config.input_shape[0]))
         cropped_img = cv2.warpAffine(img, trans, (config.input_shape[1], config.input_shape[0]), flags=cv2.INTER_LINEAR)
-        #cropped_img = cropped_img[:,:, ::-1]
-        #cropped_img = config.normalize_input(cropped_img)
         
         for i in range(config.num_kps):
             if joints[i,2] > 0:
                 joints[i,:2] = affine_transform(joints[i,:2], trans)
                 joints[i,2] *= ((joints[i,0] >= 0) & (joints[i,0] < config.input_shape[1]) & (joints[i,1] >= 0) & (joints[i,1] < config.input_shape[0]))
-        target_coord = joints[:,:2]
+        target_coord = joints[:,:2].astype(np.int16)
         target_valid = joints[:,2]
 
-        return [cropped_img, target_coord]
+        return [cropped_img[:,:,::-1], target_coord]
