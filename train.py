@@ -36,7 +36,7 @@ def data_process(file_path, bbox, joints):
     return cropped_img, heatmap
 
 
-processed_ds = ds.map(data_process).batch(32).map(_fixup_shape)
+processed_ds = ds.map(data_process).batch(16).map(_fixup_shape)
 
 pose_estimator = tf.keras.models.load_model('model/pose.h5')
 
@@ -45,8 +45,8 @@ pose_estimator.compile(loss='mse',
                        optimizer=optimizer,
                        metrics=['mae', 'mse'])
 
-EPOCHS = 10
+EPOCHS = 2
 
 history = pose_estimator.fit(
     processed_ds,
-    epochs=EPOCHS, verbose=0)
+    epochs=EPOCHS)
