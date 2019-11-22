@@ -34,15 +34,15 @@ config = config.config()
 img = plt.imread(dbcfg.img_path + os.sep + data[0].numpy().decode("utf-8"))
 cropped_img, target_coord = image_process.cropped_image_and_pose_coord(data[0],data[1], data[2])
 
-plt.imshow(img)
-plt.show()
-plt.imshow(cropped_img)
-plt.show()
+# plt.imshow(img)
+# plt.show()
+# plt.imshow(cropped_img)
+# plt.show()
 
-kps_array = np.array(data[2]).reshape((17, 3))
-print(kps_array.T)
-plt.imshow(dbcfg.vis_keypoints(img, kps_array.T))
-plt.show()
+# kps_array = np.array(data[2]).reshape((17, 3))
+# print(kps_array.T)
+# plt.imshow(dbcfg.vis_keypoints(img, kps_array.T))
+# plt.show()
 
 imaga_path = dbcfg.img_path
 
@@ -56,3 +56,6 @@ processed_ds = ds.shuffle(100).map(data_process).batch(32)
 for images, coords in processed_ds.take(1):
     print('mini_batch images : ', images.shape)
     print('mini_batch labels : ', coords.shape)
+    
+plt.imshow(images[0].numpy().astype(int))
+plt.show()
