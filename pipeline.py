@@ -11,7 +11,7 @@ from config.coco_config import config
 
 config = config()
 dbcfg = dataset.Dataset()
-train_data = dbcfg.load_train_data()
+train_data = dbcfg.load_val_data_with_annot()
 
 
 image_paths = [i['imgpath'] for i in train_data]
@@ -32,9 +32,9 @@ def data_process(file_path, bbox, joints):
 
 processed_ds = ds.map(data_process).batch(32)
 
-pose_estimator = tf.keras.models.load_model('model/pose.h5')
+#pose_estimator = tf.keras.models.load_model('model/pose.h5')
 
 for i in processed_ds.take(1):
     print('input images : ', i[0].shape) #input images :  (32, 256, 192, 3)
     print('heatmap (label) shape : ', i[1].shape) #heatmap (label) shape :  (32, 64, 48, 17)
-    print('predicted heatmap shape : ', pose_estimator(i[0]).shape) # predicted heatmap shape :  (32, 64, 48, 17)
+    #print('predicted heatmap shape : ', pose_estimator(i[0]).shape) # predicted heatmap shape :  (32, 64, 48, 17)

@@ -28,6 +28,48 @@ python setup.py build_ext --inplace
 python setup.py build_ext install
 ```
 
+### c) Dataset path setting
+
+Dataset path 설정해주기
+
+```
+${dataset_path}
+|
+|-- |-- COCO
+|   `-- |-- dets
+|       |   |-- human_detection.json
+|       |-- annotations
+|       |   |-- person_keypoints_train2017.json
+|       |   |-- person_keypoints_val2017.json
+|       |   `-- image_info_test-dev2017.json
+|       `-- images
+|           |-- train2017/
+|           |-- val2017/
+|           `-- test2017/
+```
+
+```
+# config/coco_config.py에서 아래와 같이 image_path와 dataset_path를 수정해줄 것.
+
+class config():
+    def __init__(self):
+        self.image_path = '{dataset_path}/COCO/images'
+        self.dataset_path = '{dataset_path}/COCO/'
+        self.input_shape = (256, 192)
+        self.num_kps = 17
+        self.rotation_factor = 40
+        self.scale_factor = 0.3
+        self.kps_symmetry = [(1, 2), (3, 4), (5, 6), (7, 8),
+                             (9, 10), (11, 12), (13, 14), (15, 16)]
+        self.output_shape = (
+            self.input_shape[0] // 4, self.input_shape[1] // 4)
+        if self.output_shape[0] == 64:
+            self.sigma = 2
+        elif self.output_shape[0] == 96:
+            self.sigma = 3
+        self.pixel_means = [[[123.68, 116.78, 103.94]]]
+```
+
 # Implementation plan
 
 ## a) Simple pose estimation 

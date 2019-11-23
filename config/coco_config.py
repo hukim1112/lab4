@@ -1,7 +1,7 @@
 class config():
     def __init__(self):
-        self.image_path = '/home/dan/prj/datasets/COCO/images'
-        self.dataset_path = '/home/dan/prj/datasets/COCO'
+        self.image_path = '/home/kerry/prj/pose_repo/lab4/datasets/COCO/images'
+        self.dataset_path = '/home/kerry/prj/pose_repo/lab4/datasets/COCO/'
         self.input_shape = (256, 192)
         self.num_kps = 17
         self.rotation_factor = 40
