@@ -30,7 +30,15 @@ python setup.py build_ext install
 
 ### c) Dataset path setting
 
-Dataset path 설정해주기
+#### Dataset path 설정해주기 
+
+테스트를 위해 아래 이미지와 레이블을 다운 받아 아래 폴더 구조를 형성하면 pipeline_test.py를 실행해볼 수 있음.
+
+images/val2017 : [link](https://drive.google.com/open?id=10fKGaZva9c8Kf5_tGnCrEMGrDKcyiEoE)
+
+annotations/person_keypoints_val2017.json : [link](https://drive.google.com/open?id=1jg3xa_HxQC8LMSO83eYBBrmW5ctbSane)
+
+
 
 ```
 ${dataset_path}
