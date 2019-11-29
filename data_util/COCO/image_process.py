@@ -70,7 +70,7 @@ def render_gaussian_heatmap(coord, output_shape, config=config()):
     heatmap = tf.exp(-(((xx-x)/config.sigma)**2)/2 -(((yy-y)/config.sigma)**2)/2)
     return heatmap * 255.
 
-def cropped_image_and_pose_coord(file_path, bbox, joints, config=config(), is_train=True):
+def cropped_image_and_pose_coord(file_path, bbox, joints, config=config()):
     file_path = file_path.numpy().decode("utf-8")
     img = cv2.imread(os.path.join(config.image_path, file_path), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
     if img is None:
@@ -85,31 +85,34 @@ def cropped_image_and_pose_coord(file_path, bbox, joints, config=config(), is_tr
         w = h * aspect_ratio
     scale = np.array([w,h]) * 1.25
     rotation = 0
+    joints = np.array(joints).reshape(config.num_kps, 3).astype(np.float32)
 
-    if is_train == True:
-        joints = np.array(joints).reshape(config.num_kps, 3).astype(np.float32)
+    #data augmentation
+    scale = scale * np.clip(np.random.randn()*config.scale_factor + 1, 1-config.scale_factor, 1+config.scale_factor)
+    rotation = np.clip(np.random.randn()*config.rotation_factor, -config.rotation_factor*2, config.rotation_factor*2)\
+        if random.random() <= 0.6 else 0
 
-        #data augmentation
-        scale = scale * np.clip(np.random.randn()*config.scale_factor + 1, 1-config.scale_factor, 1+config.scale_factor)
-        rotation = np.clip(np.random.randn()*config.rotation_factor, -config.rotation_factor*2, config.rotation_factor*2)\
-            if random.random() <= 0.6 else 0
+    if random.random() <= 0.5:
+        img = img[:, ::-1, :]
+        center[0] = img.shape[1] - 1 - center[0]
+        joints[:,0] = img.shape[1] - 1 - joints[:,0]
+        for (q, w) in config.kps_symmetry:
+            joints_q, joints_w = joints[q,:].copy(), joints[w,:].copy()
+            joints[w,:], joints[q,:] = joints_q, joints_w
 
-        if random.random() <= 0.5:
-            img = img[:, ::-1, :]
-            center[0] = img.shape[1] - 1 - center[0]
-            joints[:,0] = img.shape[1] - 1 - joints[:,0]
-            for (q, w) in config.kps_symmetry:
-                joints_q, joints_w = joints[q,:].copy(), joints[w,:].copy()
-                joints[w,:], joints[q,:] = joints_q, joints_w
-
-        trans = get_affine_transform(center, scale, rotation, (config.input_shape[1], config.input_shape[0]))
-        cropped_img = cv2.warpAffine(img, trans, (config.input_shape[1], config.input_shape[0]), flags=cv2.INTER_LINEAR)
+    trans = get_affine_transform(center, scale, rotation, (config.input_shape[1], config.input_shape[0]))
+    cropped_img = cv2.warpAffine(img, trans, (config.input_shape[1], config.input_shape[0]), flags=cv2.INTER_LINEAR)
         
-        for i in range(config.num_kps):
-            if joints[i,2] > 0:
-                joints[i,:2] = affine_transform(joints[i,:2], trans)
-                joints[i,2] *= ((joints[i,0] >= 0) & (joints[i,0] < config.input_shape[1]) & (joints[i,1] >= 0) & (joints[i,1] < config.input_shape[0]))
-        target_coord = joints[:,:2].astype(np.int16)
-        target_valid = joints[:,2]
+    for i in range(config.num_kps):
+        if joints[i,2] > 0:
+            joints[i,:2] = affine_transform(joints[i,:2], trans)
+            joints[i,2] *= ((joints[i,0] >= 0) & (joints[i,0] < config.input_shape[1]) & (joints[i,1] >= 0) & (joints[i,1] < config.input_shape[0]))
+    target_coord = joints[:,:2].astype(np.int16)
+    target_valid = joints[:,2]
 
-        return [cropped_img[:,:,::-1], target_coord]
+    return [cropped_img[:,:,::-1], target_coord]
+
+def normalize_input(self, img):
+    return img - np.array([[[123.68, 116.78, 103.94]]])
+def denormalize_input(self, img):
+        return img + np.array([[[123.68, 116.78, 103.94]]])
