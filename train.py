@@ -7,6 +7,9 @@ from data_util.COCO import dataset, image_process
 import tensorflow as tf
 from matplotlib import pyplot as plt
 from config.coco_config import config
+import gpu_handle
+
+gpu_handle.setup_gpus()
 
 config = config()
 dbcfg = dataset.Dataset()
@@ -38,19 +41,34 @@ def data_process(file_path, bbox, joints):
     return fixup_shape(cropped_img/255., heatmap)
 
 
-processed_ds = ds.map(data_process).batch(64)
+processed_ds = ds.map(data_process).batch(48).repeat()
 processed_val_ds = ds.map(data_process).batch(64)
 pose_estimator = tf.keras.models.load_model('model/pose.h5')
-optimizer = tf.keras.optimizers.Adam(0.001)
+
+lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate,
+        decay_steps=40000,
+        decay_rate = 0.96,
+        staircase=True)
+optimizer = tf.keras.optimizers.Adam(lr_schedule)
 pose_estimator.compile(loss='mse',
                        optimizer=optimizer,
                        metrics=['mae', 'mse'])
 
 EPOCHS = 120
 
+callbacks = [
+        keras.callbacks.ModelCheckpoint(
+            filepath='model/trained_{epoch}.h5',
+            save_best_only = True,
+            monitor='val_loss',
+            verbose=1)
+        ]
+
 history = pose_estimator.fit(
     processed_ds,
-    validation_data=processed_val_ds
+    validation_data=processed_val_ds,
+    callbacks=callbacks,
     epochs=EPOCHS)
 
 pose_estimator.save('trained.h5')
