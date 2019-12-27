@@ -40,25 +40,29 @@ def data_process(file_path, bbox, joints):
     heatmap = image_process.render_gaussian_heatmap(target_coord, config.output_shape)
     return fixup_shape(cropped_img/255., heatmap)
 
+EPOCHS = 120
+BATCH_SIZE = 48
 
-processed_ds = ds.map(data_process).batch(48).repeat()
+processed_ds = ds.map(data_process).batch(BATCH_SIZE).repeat()
 processed_val_ds = ds.map(data_process).batch(64)
 pose_estimator = tf.keras.models.load_model('model/pose.h5')
 
-lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+from math import ceil
+steps_per_epoch = ceil(len(train_data)/BATCH_SIZE)
+initial_learning_rate = 0.001
+lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate,
         decay_steps=40000,
         decay_rate = 0.96,
         staircase=True)
+
 optimizer = tf.keras.optimizers.Adam(lr_schedule)
 pose_estimator.compile(loss='mse',
                        optimizer=optimizer,
                        metrics=['mae', 'mse'])
 
-EPOCHS = 120
-
 callbacks = [
-        keras.callbacks.ModelCheckpoint(
+        tf.keras.callbacks.ModelCheckpoint(
             filepath='model/trained_{epoch}.h5',
             save_best_only = True,
             monitor='val_loss',
@@ -68,7 +72,6 @@ callbacks = [
 history = pose_estimator.fit(
     processed_ds,
     validation_data=processed_val_ds,
+    steps_per_epoch=steps_per_epoch,
     callbacks=callbacks,
     epochs=EPOCHS)
-
-pose_estimator.save('trained.h5')
